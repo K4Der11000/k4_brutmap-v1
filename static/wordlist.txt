@@ -1,0 +1,10 @@
+123456
+password
+admin
+letmein
+qwerty
+kader11000
+root
+guest
+test123
+passw0rd
