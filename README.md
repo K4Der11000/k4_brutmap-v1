@@ -1,38 +1,19 @@
-# k4_brutmap-v1
+Project: Web Brute Force Interface by kader11000
 
-# BruteForce Web Panel - by kader11000
+How to Run:
+-----------
 
-## Requirements:
-- Python 3.x
-- Flask
+1. Make sure Python is installed (preferably 3.8+)
+2. Install required modules:
+   pip install flask
 
-## Install Dependencies:
-Open terminal or CMD in the project directory and run:
+3. Run the app:
+   python app.py
 
-pip install flask
+4. Open your browser and go to:
+   http://127.0.0.1:5000
 
-## How to Run:
-Run this command in the terminal:
-
-python app.py
-
-Then open your browser and go to:
-
-http://127.0.0.1:5000/
-
-## Features:
-- Secure login system
-- Upload and edit wordlist
-- Start / Pause / Resume attack
-- Automatically stops if stop-keyword is found
-- Fake terminal for live feedback
-- iframe for external interaction
-- Editable request area
-- Export logs and results
-- Fully styled with a hacker-themed interface
-
-## Default Login:
-Username: admin  
+Login Credentials:
+------------------
+Username: admin
 Password: kader11000
-
-Enjoy!
