@@ -1,42 +1,133 @@
-from flask import Flask, render_template, request, redirect, session, send_file import os import threading import time
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory
+import threading
+import time
+import os
 
-app = Flask(name) app.secret_key = 'your_secret_key'
+app = Flask(__name__)
+app.secret_key = "secret_key"
 
-Global Variables
+# Default credentials
+USERNAME = "admin"
+PASSWORD = "kader11000"
 
-found_password = None is_running = False pause_flag = False password_list = [] current_guess = "" target_url = "https://example.com" TARGET_FILE = "last_target.txt"
+# Global states
+brute_thread = None
+pause_event = threading.Event()
+stop_event = threading.Event()
+current_guess = None
+found_password = None
+target_url = ""
+captch_enabled = False
+stop_on_keyword = None
 
-Load default wordlist
+# Load default wordlist
+def load_wordlist():
+    with open("static/wordlist.txt", "r") as f:
+        return [line.strip() for line in f if line.strip()]
 
-WORDLIST_FILE = "static/wordlist.txt" if os.path.exists(WORDLIST_FILE): with open(WORDLIST_FILE, 'r') as f: password_list = [line.strip() for line in f.readlines() if line.strip()]
+wordlist = load_wordlist()
 
-Load last target URL if available
+# Brute force logic
+def brute_force():
+    global current_guess, found_password
+    for word in wordlist:
+        if stop_event.is_set():
+            break
+        while pause_event.is_set():
+            time.sleep(0.5)
+        current_guess = word
+        print(f"Trying: {word}")
+        time.sleep(1)  # Simulate guessing delay
+        if stop_on_keyword and stop_on_keyword in word:
+            found_password = word
+            stop_event.set()
+            break
 
-if os.path.exists(TARGET_FILE): with open(TARGET_FILE, 'r') as f: target_url = f.read().strip()
+@app.route('/')
+def index():
+    if 'logged_in' in session:
+        return redirect('/dashboard')
+    return render_template("login.html")
 
-Brute Force Function
+@app.route('/auth', methods=['POST'])
+def auth():
+    username = request.form['username']
+    password = request.form['password']
+    if username == USERNAME and password == PASSWORD:
+        session['logged_in'] = True
+        return redirect('/dashboard')
+    return "Unauthorized"
 
-def brute_force(): global found_password, is_running, pause_flag, current_guess for password in password_list: while pause_flag: time.sleep(1) if not is_running: break current_guess = password # Simulate request time.sleep(0.5) if "success" in password: found_password = password is_running = False break
+@app.route('/dashboard')
+def dashboard():
+    if 'logged_in' not in session:
+        return redirect('/')
+    return render_template("dashboard.html",
+                           current_guess=current_guess,
+                           found_password=found_password,
+                           target_url=target_url)
 
-@app.route('/') def login(): return render_template('login.html')
+@app.route('/start')
+def start():
+    global brute_thread, stop_event, pause_event, found_password
+    if 'logged_in' not in session:
+        return redirect('/')
+    if brute_thread and brute_thread.is_alive():
+        return redirect('/dashboard')
+    found_password = None
+    stop_event.clear()
+    pause_event.clear()
+    brute_thread = threading.Thread(target=brute_force)
+    brute_thread.start()
+    return redirect('/dashboard')
 
-@app.route('/auth', methods=['POST']) def auth(): username = request.form['username'] password = request.form['password'] if username == 'admin' and password == 'kader11000': session['logged_in'] = True return redirect('/dashboard') return redirect('/')
+@app.route('/pause')
+def pause():
+    pause_event.set()
+    return redirect('/dashboard')
 
-@app.route('/logout') def logout(): session.clear() return redirect('/')
+@app.route('/resume')
+def resume():
+    pause_event.clear()
+    return redirect('/dashboard')
 
-@app.route('/dashboard') def dashboard(): if not session.get('logged_in'): return redirect('/') session.setdefault('target_url', target_url) return render_template( 'dashboard.html', passwords=[],  # hide passwords from view found_password=found_password, current_guess=current_guess, target_url=session['target_url'] )
+@app.route('/stop')
+def stop():
+    stop_event.set()
+    return redirect('/dashboard')
 
-@app.route('/start') def start(): global is_running, pause_flag if not is_running: is_running = True pause_flag = False threading.Thread(target=brute_force).start() return redirect('/dashboard')
+@app.route('/save_target', methods=['POST'])
+def save_target():
+    global target_url
+    target_url = request.form.get("target_url")
+    return redirect('/dashboard')
 
-@app.route('/pause') def pause(): global pause_flag pause_flag = True return redirect('/dashboard')
+@app.route('/upload_wordlist', methods=['POST'])
+def upload_wordlist():
+    global wordlist
+    file = request.files['file']
+    if file and file.filename.endswith(".txt"):
+        filepath = os.path.join("static", "wordlist.txt")
+        file.save(filepath)
+        wordlist = load_wordlist()
+    return redirect('/dashboard')
 
-@app.route('/resume') def resume(): global pause_flag pause_flag = False return redirect('/dashboard')
+@app.route('/set_stop_keyword', methods=['POST'])
+def set_stop_keyword():
+    global stop_on_keyword
+    stop_on_keyword = request.form.get("keyword")
+    return redirect('/dashboard')
 
-@app.route('/stop') def stop(): global is_running is_running = False return redirect('/dashboard')
+@app.route('/toggle_captcha', methods=['GET'])
+def toggle_captcha():
+    global captch_enabled
+    captch_enabled = not captch_enabled
+    return redirect('/dashboard')
 
-@app.route('/save_target', methods=['POST']) def save_target(): url = request.form.get('target_url', 'https://example.com') session['target_url'] = url with open(TARGET_FILE, 'w') as f: f.write(url) return '', 204
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect('/')
 
-@app.route('/upload_wordlist', methods=['POST']) def upload_wordlist(): global password_list file = request.files['file'] if file: lines = file.read().decode().splitlines() password_list = [line.strip() for line in lines if line.strip()] with open(WORDLIST_FILE, 'w') as f: f.write('\n'.join(password_list)) return redirect('/dashboard')
-
-if name == 'main': app.run(debug=True)
-
+if __name__ == '__main__':
+    app.run(debug=True)
