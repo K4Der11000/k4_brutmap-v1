@@ -3,103 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard - kader11000</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: #000;
-      color: #0f0;
-      font-family: 'Courier New', Courier, monospace;
-    }
-    .banner {
-      font-size: 28px;
-      text-align: center;
-      margin: 10px 0;
-      font-weight: bold;
-      color: #0f0;
-    }
-    iframe {
-      width: 100%;
-      height: 300px;
-      border: 1px solid #0f0;
-      resize: both;
-      overflow: auto;
-    }
-    textarea {
-      background-color: #111;
-      color: #0f0;
-      width: 100%;
-      height: 150px;
-    }
-    .terminal-box {
-      background-color: #111;
-      color: #0f0;
-      height: 200px;
-      overflow-y: auto;
-      border: 1px solid #0f0;
-      padding: 10px;
-      resize: vertical;
-    }
-    table {
-      color: #0f0;
-    }
-  </style>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://kit.fontawesome.com/a2e0e9b8b3.js" crossorigin="anonymous"></script>
 </head>
-<body>
-  <div class="banner">kader11000</div>
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-md-4">
-        <form method="POST" action="/start_attack">
-          <input type="text" name="stop_keyword" class="form-control mb-2" placeholder="Stop keyword">
-          <button type="submit" class="btn btn-success w-100 mb-2"><i class="fas fa-play"></i> Start Attack</button>
-        </form>
-        <form method="POST" action="/pause_attack">
-          <button class="btn btn-warning w-100 mb-2"><i class="fas fa-pause"></i> Pause</button>
-        </form>
-        <form method="POST" action="/resume_attack">
-          <button class="btn btn-info w-100 mb-2"><i class="fas fa-forward"></i> Resume</button>
-        </form>
-        <form method="GET" action="/logout">
-          <button class="btn btn-danger w-100 mb-2"><i class="fas fa-sign-out-alt"></i> Logout</button>
-        </form>
+<body class="dashboard-body">
+  <div class="header">
+    <h1 class="banner">kader11000</h1>
+    <form action="/logout" method="get">
+      <button class="btn logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </form>
+  </div>
 
-        <form method="POST" action="/upload_wordlist" enctype="multipart/form-data">
-          <input type="file" name="file" class="form-control mb-2">
-          <button type="submit" class="btn btn-primary w-100 mb-2"><i class="fas fa-upload"></i> Upload Wordlist</button>
-        </form>
+  <div class="controls">
+    <form action="/start" method="get"><button class="btn start"><i class="fas fa-play"></i> Start</button></form>
+    <form action="/pause" method="get"><button class="btn pause"><i class="fas fa-pause"></i> Pause</button></form>
+    <form action="/resume" method="get"><button class="btn resume"><i class="fas fa-forward"></i> Resume</button></form>
+    <form action="/stop" method="get"><button class="btn stop"><i class="fas fa-stop"></i> Stop</button></form>
+  </div>
 
-        <form method="POST" action="/update_wordlist">
-          <div class="mb-2">
-            {% for word in passwords %}
-              <input type="text" name="words" value="{{ word }}" class="form-control mb-1">
-            {% endfor %}
-          </div>
-          <button type="submit" class="btn btn-secondary w-100"><i class="fas fa-save"></i> Save Wordlist</button>
-        </form>
+  <div class="target-section">
+    <form method="POST" action="/save_target">
+      <input type="text" name="target_url" placeholder="Target URL" value="{{ target_url }}" required>
+      <button type="submit"><i class="fas fa-save"></i> Load URL</button>
+    </form>
+  </div>
+
+  <div class="main-content">
+    <div class="iframe-wrapper resizable">
+      <iframe id="targetFrame" src="{{ target_url }}"></iframe>
+    </div>
+
+    <div class="side-panel">
+      <div class="info-box terminal">
+        <p><strong>Status:</strong> {{ 'Running' if current_guess else 'Idle' }}</p>
+        <p><strong>Current Guess:</strong> {{ current_guess }}</p>
+        {% if found_password %}
+        <p class="success"><strong>FOUND:</strong> {{ found_password }}</p>
+        {% endif %}
       </div>
 
-      <div class="col-md-8">
-        <iframe src="https://example.com" id="frame"></iframe>
-        <textarea placeholder="Custom Request Area"></textarea>
-        <div class="terminal-box mt-2">
-          {% if found_password %}
-            <strong>Found Password:</strong> {{ found_password }}<br>
-          {% else %}
-            <em>Waiting for result...</em>
-          {% endif %}
-        </div>
-        <table class="table mt-3">
-          <thead><tr><th>#</th><th>Password</th></tr></thead>
-          <tbody>
-            {% for pw in passwords %}
-              <tr><td>{{ loop.index }}</td><td>{{ pw }}</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="results-box">
+        <h3>Upload Custom Wordlist</h3>
+        <form action="/upload_wordlist" method="POST" enctype="multipart/form-data">
+          <input type="file" name="file" required>
+          <button type="submit"><i class="fas fa-upload"></i> Upload</button>
+        </form>
       </div>
     </div>
   </div>
+
 </body>
 </html>
